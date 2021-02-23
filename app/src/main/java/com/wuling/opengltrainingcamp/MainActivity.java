@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
@@ -11,6 +12,8 @@ import com.wuling.opengltrainingcamp.common.GlobalContext;
 import com.wuling.opengltrainingcamp.demo1.DemoActivity1;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+
+    private static final String TAG = "MainActivity";
 
     private TextView tvvBO;
 
@@ -23,6 +26,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         tvvBO = findViewById(R.id.tv_vbo);
         tvvBO.setOnClickListener(this);
+
     }
 
     @Override
@@ -33,4 +37,5 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
         }
     }
+
 }
