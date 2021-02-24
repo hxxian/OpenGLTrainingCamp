@@ -120,20 +120,16 @@ public class SimpleRender implements GLSurfaceView.Renderer {
         bmpHeight = bitmap.getHeight();
 
 //        textureId = GLUtil.loadTexture(bitmap);
+
+        // 通过PBO将像素数据转到纹理对象
+
         textureId = loadTexture();
 
-        // 创建PBO
         int size = bmpWidth * bmpHeight * 4;
-
-//        Bitmap bitmap = null;
-//        int[] pixels = new int[bmpWidth * bmpHeight];
-//        bitmap.getPixels(pixels, 0,bmpWidth, 0,0, bmpWidth,bmpHeight);
-
 
         ByteBuffer buffer = ByteBuffer.allocateDirect(size);
         bitmap.copyPixelsToBuffer(buffer);
         buffer.position(0);
-//        buffer.put(pixels).position(0);
 
         GLES30.glGenBuffers(1, pbos2, 0);
         //绑定到第一个PBO
@@ -147,7 +143,8 @@ public class SimpleRender implements GLSurfaceView.Renderer {
         GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, pbos2[0]);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId);
 
-        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, bmpWidth, bmpHeight, GLES20.GL_RGB, GLES20.GL_UNSIGNED_BYTE, null);
+        GLES30.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, bmpWidth, bmpHeight, GLES20.GL_RGB, GLES20.GL_UNSIGNED_BYTE, null);
+
 
         GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, 0);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
@@ -265,10 +262,12 @@ public class SimpleRender implements GLSurfaceView.Renderer {
 
         onDraw(textureId, vertexBuffer2, textureBuffer);
 
-        Bitmap bitmap = readPixelsFromPBO();
-        if (bitmap != null) {
-            bitmap.recycle();
-        }
+//        Bitmap bitmap = readPixelsFromPBO();
+//        if (bitmap != null) {
+//            bitmap.recycle();
+//        }
+
+//        pboToTextureObject();
 
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, GLES20.GL_NONE);
 
@@ -401,14 +400,15 @@ public class SimpleRender implements GLSurfaceView.Renderer {
         return textureIds[0];
     }
 
-    private int[] pbos = new int[2];
+    private int[] pbos = new int[3];
     private int[] pbos2 = new int[1];
-    private int index;
-    private int nextIndex;
+    private int index = 0;
+    private int nextIndex = 1;
+    private int size;
 
     private void initPBOs() {
-        int size = bmpWidth * bmpHeight * 4;
-        GLES30.glGenBuffers(2, pbos, 0);
+        size = bmpWidth * bmpHeight * 4;
+        GLES30.glGenBuffers(3, pbos, 0);
         //绑定到第一个PBO
         GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, pbos[0]);
         //设置内存大小
@@ -459,14 +459,38 @@ public class SimpleRender implements GLSurfaceView.Renderer {
         }
         //解除绑定PBO
         GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, GLES20.GL_NONE);
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, GLES20.GL_NONE);
         //交换索引
-        index = (index + 1) % 2;
-        nextIndex = (nextIndex + 1) % 2;
+        int temp = index;
+        index = nextIndex;
+        nextIndex = temp;
 
         Bitmap bitmap = Bitmap.createBitmap(bmpWidth, bmpHeight, Bitmap.Config.ARGB_8888);
         bitmap.copyPixelsFromBuffer(byteBuffer);
         return bitmap;
+    }
+
+    private int pboTextureId = 0;
+
+    private void pboToTextureObject() {
+        if (pboTextureId == 0) {
+            pboTextureId = loadTexture();
+        }
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, pbos[2]);
+        GLES30.glReadPixels(0, 0, bmpWidth, bmpHeight, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, 0);
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);
+
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, GLES20.GL_NONE);
+
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, pboTextureId);
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, pbos[2]);
+
+        GLES30.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, bmpWidth, bmpHeight, GLES20.GL_RGB, GLES20.GL_UNSIGNED_BYTE, null);
+
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, 0);
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0);
+
+        Bitmap bitmap = GLUtil.readPixelsFrom2DTexture(pboTextureId, 0, 0, bmpWidth, bmpHeight);
+        System.out.println();
     }
 
     public void release() {
