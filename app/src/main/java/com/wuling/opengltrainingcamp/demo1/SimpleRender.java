@@ -3,6 +3,7 @@ package com.wuling.opengltrainingcamp.demo1;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.RectF;
+import android.net.wifi.WifiManager;
 import android.opengl.GLES20;
 import android.opengl.GLES30;
 import android.opengl.GLException;
@@ -119,35 +120,7 @@ public class SimpleRender implements GLSurfaceView.Renderer {
         bmpWidth = bitmap.getWidth();
         bmpHeight = bitmap.getHeight();
 
-//        textureId = GLUtil.loadTexture(bitmap);
-
-        // 通过PBO将像素数据转到纹理对象
-
-        textureId = loadTexture();
-
-        int size = bmpWidth * bmpHeight * 4;
-
-        ByteBuffer buffer = ByteBuffer.allocateDirect(size);
-        bitmap.copyPixelsToBuffer(buffer);
-        buffer.position(0);
-
-        GLES30.glGenBuffers(1, pbos2, 0);
-        //绑定到第一个PBO
-        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, pbos2[0]);
-        //设置内存大小
-        GLES30.glBufferData(GLES30.GL_PIXEL_PACK_BUFFER, size, null, GLES30.GL_STREAM_DRAW);
-        GLES30.glBufferSubData(GLES30.GL_PIXEL_PACK_BUFFER, 0, size, buffer);
-        //解除绑定PBO
-        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);
-
-        GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, pbos2[0]);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId);
-
-        GLES30.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, bmpWidth, bmpHeight, GLES20.GL_RGB, GLES20.GL_UNSIGNED_BYTE, null);
-
-
-        GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, 0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
+        textureId = GLUtil.loadTexture(bitmap);
 
         vertexBuffer = ByteBuffer
                 .allocateDirect(TextureUtil.VERTEX.length * 4)
@@ -267,7 +240,7 @@ public class SimpleRender implements GLSurfaceView.Renderer {
 //            bitmap.recycle();
 //        }
 
-//        pboToTextureObject();
+        pboToTextureObject();
 
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, GLES20.GL_NONE);
 
@@ -400,15 +373,15 @@ public class SimpleRender implements GLSurfaceView.Renderer {
         return textureIds[0];
     }
 
-    private int[] pbos = new int[3];
-    private int[] pbos2 = new int[1];
+    private int[] pbos = new int[2];
+    private int[] pbos2 = new int[2];
     private int index = 0;
     private int nextIndex = 1;
     private int size;
 
     private void initPBOs() {
         size = bmpWidth * bmpHeight * 4;
-        GLES30.glGenBuffers(3, pbos, 0);
+        GLES30.glGenBuffers(2, pbos, 0);
         //绑定到第一个PBO
         GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, pbos[0]);
         //设置内存大小
@@ -419,6 +392,17 @@ public class SimpleRender implements GLSurfaceView.Renderer {
 
         //解除绑定PBO
         GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);
+
+
+        GLES30.glGenBuffers(2, pbos2, 0);
+
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, pbos2[0]);
+        GLES30.glBufferData(GLES30.GL_PIXEL_UNPACK_BUFFER, size, null, GLES30.GL_STREAM_DRAW);
+
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, pbos2[1]);
+        GLES30.glBufferData(GLES30.GL_PIXEL_UNPACK_BUFFER, size, null, GLES30.GL_STREAM_DRAW);
+
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, 0);
     }
 
     private Bitmap readPixelsFromPBO() {
@@ -460,9 +444,8 @@ public class SimpleRender implements GLSurfaceView.Renderer {
         //解除绑定PBO
         GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, GLES20.GL_NONE);
         //交换索引
-        int temp = index;
-        index = nextIndex;
-        nextIndex = temp;
+        index = (index + 1) % 2;
+        nextIndex = (nextIndex + 1) % 2;
 
         Bitmap bitmap = Bitmap.createBitmap(bmpWidth, bmpHeight, Bitmap.Config.ARGB_8888);
         bitmap.copyPixelsFromBuffer(byteBuffer);
@@ -475,22 +458,41 @@ public class SimpleRender implements GLSurfaceView.Renderer {
         if (pboTextureId == 0) {
             pboTextureId = loadTexture();
         }
-        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, pbos[2]);
-        GLES30.glReadPixels(0, 0, bmpWidth, bmpHeight, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, 0);
-        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);
 
-        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, GLES20.GL_NONE);
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, pbos2[index]);
 
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, pboTextureId);
-        GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, pbos[2]);
 
         GLES30.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, bmpWidth, bmpHeight, GLES20.GL_RGB, GLES20.GL_UNSIGNED_BYTE, null);
 
-        GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, 0);
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0);
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, pbos2[nextIndex]);
 
-        Bitmap bitmap = GLUtil.readPixelsFrom2DTexture(pboTextureId, 0, 0, bmpWidth, bmpHeight);
-        System.out.println();
+        ByteBuffer byteBuffer = (ByteBuffer) GLES30.glMapBufferRange(GLES30.GL_PIXEL_UNPACK_BUFFER,
+                0, size, GLES30.GL_MAP_WRITE_BIT);
+
+        if (byteBuffer.remaining() > 0) {
+            byteBuffer.position(0);
+            bitmap.copyPixelsToBuffer(byteBuffer);
+
+            GLES30.glUnmapBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER);
+        }
+
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, 0);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
+
+        index = (index + 1) % 2;
+        nextIndex = (nextIndex + 1) % 2;
+
+        Bitmap bitmap = Bitmap.createBitmap(bmpWidth, bmpHeight, Bitmap.Config.ARGB_8888);
+        byteBuffer.position(0);
+        bitmap.copyPixelsFromBuffer(byteBuffer);
+        if (bitmap != null) {
+            bitmap.recycle();
+        }
+
+//        Bitmap bitmap = GLUtil.readPixelsFrom2DTexture(pboTextureId, 0, 0, bmpWidth, bmpHeight);
+
+
     }
 
     public void release() {

@@ -95,7 +95,7 @@ public class GLUtil {
                 e.printStackTrace();
             }
 
-            bitmap.recycle();
+//            bitmap.recycle();
         }
 
         return textureHandle[0];
