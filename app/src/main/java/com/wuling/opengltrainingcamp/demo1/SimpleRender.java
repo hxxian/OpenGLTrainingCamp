@@ -248,7 +248,7 @@ public class SimpleRender implements GLSurfaceView.Renderer {
         GLES20.glViewport(0, 0, surfaceWidth, surfaceHeight);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
         GLES20.glClearColor(0, 0, 0, 0);
-        onDraw(fboTextureId, vertexBuffer, textureBuffer);
+        onDraw(pboTextureId, vertexBuffer, textureBuffer);
 
     }
 
@@ -454,41 +454,59 @@ public class SimpleRender implements GLSurfaceView.Renderer {
 
     private int pboTextureId = 0;
 
+    int[] pixelData;
+
     private void pboToTextureObject() {
         if (pboTextureId == 0) {
             pboTextureId = loadTexture();
+        }
+
+        if (pixelData == null) {
+            pixelData = new int[bmpWidth * bmpHeight];
         }
 
         GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, pbos2[index]);
 
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, pboTextureId);
 
-        GLES30.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, bmpWidth, bmpHeight, GLES20.GL_RGB, GLES20.GL_UNSIGNED_BYTE, null);
+        GLJni.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0,
+                bmpWidth, bmpHeight, GLES20.GL_RGB, GLES20.GL_UNSIGNED_BYTE);
 
         GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, pbos2[nextIndex]);
 
-        ByteBuffer byteBuffer = (ByteBuffer) GLES30.glMapBufferRange(GLES30.GL_PIXEL_UNPACK_BUFFER,
-                0, size, GLES30.GL_MAP_WRITE_BIT);
+//        ByteBuffer byteBuffer = (ByteBuffer) GLES30.glMapBufferRange(GLES30.GL_PIXEL_UNPACK_BUFFER,
+//                0, size, GLES30.GL_MAP_WRITE_BIT);
+//
+//        if (byteBuffer.remaining() > 0) {
+//            byteBuffer.position(0);
+//
+//            bitmap.copyPixelsToBuffer(byteBuffer);
+//
+//
+//            GLES30.glUnmapBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER);
+//        }
+//        bitmap.getPixels(pixelData, 0, bmpWidth, 0, 0, bmpWidth, bmpHeight);
 
-        if (byteBuffer.remaining() > 0) {
-            byteBuffer.position(0);
-            bitmap.copyPixelsToBuffer(byteBuffer);
+        Log.w(TAG, "pixelData: " + pixelData[0]);
 
-            GLES30.glUnmapBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER);
-        }
+        GLJni.glMapBufferToPBO(bitmap, bmpWidth, bmpHeight, size);
+
 
         GLES30.glBindBuffer(GLES30.GL_PIXEL_UNPACK_BUFFER, 0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
+//        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
 
         index = (index + 1) % 2;
         nextIndex = (nextIndex + 1) % 2;
 
-        Bitmap bitmap = Bitmap.createBitmap(bmpWidth, bmpHeight, Bitmap.Config.ARGB_8888);
-        byteBuffer.position(0);
-        bitmap.copyPixelsFromBuffer(byteBuffer);
-        if (bitmap != null) {
-            bitmap.recycle();
-        }
+        boolean isTexture = GLES20.glIsTexture(pboTextureId);
+        Log.w(TAG, "pboToTextureObject: isTexture: "+ isTexture);
+
+//        Bitmap bitmap = Bitmap.createBitmap(bmpWidth, bmpHeight, Bitmap.Config.ARGB_8888);
+//        byteBuffer.position(0);
+//        bitmap.copyPixelsFromBuffer(byteBuffer);
+//        if (bitmap != null) {
+//            bitmap.recycle();
+//        }
 
 //        Bitmap bitmap = GLUtil.readPixelsFrom2DTexture(pboTextureId, 0, 0, bmpWidth, bmpHeight);
 

@@ -41,6 +41,13 @@ find_library( # Sets the name of the path variable.
 
 
 find_library( # Sets the name of the path variable.
+        GLESv3-lib
+
+        # Specifies the name of the NDK library that
+        # you want CMake to locate.
+        GLESv3)
+
+find_library( # Sets the name of the path variable.
         EGL-lib
 
         # Specifies the name of the NDK library that
@@ -54,7 +61,9 @@ find_library( # Sets the name of the path variable.
 target_link_libraries( # Specifies the target library.
         native-lib
         ${GLESv2-lib}
+        ${GLESv3-lib}
         ${EGL-lib}
         # Links the target library to the log library
         # included in the NDK.
+        jnigraphics
         ${log-lib})
